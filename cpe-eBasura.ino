@@ -20,7 +20,7 @@ const char* WIFI_PASSWORD = "cpeebasura123";
 #define BIN_DEPTH_MM   400
 #define FULL_THRESHOLD 90
 
-// ── Bin data struct ──────────────────────────
+// ── Bin data struct ──────────────────────────────
 struct BinData {
   String  name;
   float   fillPercent;
@@ -33,18 +33,36 @@ struct BinData {
 
 BinData bins[NUM_BINS];
 
-// ── Mock fill for Zone B only (indices 8–15) ─
-const int MOCK_FILL_B[8] = {
-  88, 15, 95, 41,
-  73, 30, 60, 50
-};
-
-void applyMockDataZoneB();
 void initBins();
 
-// ── Track last Zone A update ─────────────────
+// ── Schedule data ────────────────────────────────
+// Each array holds up to 16 bin IDs (-1 = unused slot)
+struct ScheduleData {
+  int mwf[NUM_BINS];
+  int mwfCount;
+  int tth[NUM_BINS];
+  int tthCount;
+  int fs[NUM_BINS];
+  int fsCount;
+};
+
+ScheduleData sched;
+
+void initSchedule() {
+  sched.mwfCount = 0;
+  sched.tthCount = 0;
+  sched.fsCount  = 0;
+  memset(sched.mwf, -1, sizeof(sched.mwf));
+  memset(sched.tth, -1, sizeof(sched.tth));
+  memset(sched.fs,  -1, sizeof(sched.fs));
+}
+
+// ── Track last zone updates ──────────────────────
 unsigned long lastZoneAUpdate = 0;
-const unsigned long ZONE_A_TIMEOUT_MS = 10000; // 10 s
+unsigned long lastZoneBUpdate = 0;
+const unsigned long ZONE_A_TIMEOUT_MS = 10000;
+const unsigned long ZONE_B_TIMEOUT_MS = 10000;
+
 
 // ======================================================
 void setup() {
@@ -52,7 +70,7 @@ void setup() {
   Wire.begin();
 
   initBins();
-  applyMockDataZoneB();   // Zone B starts with mock data
+  initSchedule();
 
   // ── WiFi ─────────────────────────────────────
   Serial.printf("\nConnecting to %s ", WIFI_SSID);
@@ -64,16 +82,15 @@ void setup() {
   Serial.printf("\nConnected! http://%s\n",
     WiFi.localIP().toString().c_str());
 
-  // ── Routes ───────────────────────────────────
 
-  // Dashboard
+  // ── GET / — Dashboard HTML ────────────────────
   server.on("/", HTTP_GET,
     [](AsyncWebServerRequest* req) {
       req->send(200, "text/html", web.buildHTML());
     }
   );
 
-  // JSON API for the browser dashboard
+  // ── GET /api/bins — Live bin data ─────────────
   server.on("/api/bins", HTTP_GET,
     [](AsyncWebServerRequest* req) {
       req->send(200, "application/json",
@@ -81,56 +98,70 @@ void setup() {
     }
   );
 
-  // ── POST /api/zone/a ─────────────────────────
-  // Zone A node POSTs: {"bins":[{"id":0,"dist":123},...]}
-AsyncCallbackJsonWebHandler* zoneAHandler =
-  new AsyncCallbackJsonWebHandler("/api/zone/a",
-    [](AsyncWebServerRequest* req, JsonVariant& json) {
+  // ── GET /api/schedule — Return saved schedule ─
+  server.on("/api/schedule", HTTP_GET,
+    [](AsyncWebServerRequest* req) {
+      JsonDocument doc;
 
-      JsonObject root = json.as<JsonObject>();
-      JsonArray  arr  = root["bins"].as<JsonArray>();
+      JsonArray mwfArr = doc["mwf"].to<JsonArray>();
+      for (int i = 0; i < sched.mwfCount; i++) mwfArr.add(sched.mwf[i]);
 
-      if (arr.isNull()) {
-        req->send(400, "application/json",
-          "{\"error\":\"missing bins array\"}");
-        return;
-      }
+      JsonArray tthArr = doc["tth"].to<JsonArray>();
+      for (int i = 0; i < sched.tthCount; i++) tthArr.add(sched.tth[i]);
 
-      // ── Log received update ─────────────────
-      Serial.println("─────────────────────────────────");
-      Serial.println("[SERVER] Received Zone A update:");
+      JsonArray fsArr  = doc["fs"].to<JsonArray>();
+      for (int i = 0; i < sched.fsCount;  i++) fsArr.add(sched.fs[i]);
 
-      for (JsonObject b : arr) {
-        int id = b["id"] | -1;
-        if (id < 0 || id > 7) continue;
-
-        int distMM = b["dist"] | BIN_DEPTH_MM;
-        distMM     = constrain(distMM, 0, BIN_DEPTH_MM);
-
-        float fill = 100.0f *
-          (1.0f - (float)distMM / BIN_DEPTH_MM);
-        fill = constrain(fill, 0.0f, 100.0f);
-
-        bins[id].distanceMM  = distMM;
-        bins[id].fillPercent = fill;
-        bins[id].isFull      = fill >= FULL_THRESHOLD;
-        bins[id].sensorOK    = b["ok"] | true;
-
-        Serial.printf("  [Zone A] %s (id=%d) | dist=%4d mm | fill=%3.0f%% | %s\n",
-          bins[id].name.c_str(),
-          id,
-          bins[id].distanceMM,
-          bins[id].fillPercent,
-          bins[id].isFull ? "FULL" : "OK"
-        );
-      }
-
-      lastZoneAUpdate = millis();
-      req->send(200, "application/json", "{\"status\":\"ok\"}");
+      String out;
+      serializeJson(doc, out);
+      req->send(200, "application/json", out);
     }
-  );    new AsyncCallbackJsonWebHandler("/api/zone/a",
-      [](AsyncWebServerRequest* req, JsonVariant& json) {
+  );
 
+  // ── POST /api/schedule — Save schedule ────────
+  // Body: {"mwf":[0,1,2],"tth":[3,4],"fs":[5,6]}
+  AsyncCallbackJsonWebHandler* schedHandler =
+    new AsyncCallbackJsonWebHandler("/api/schedule",
+      [](AsyncWebServerRequest* req, JsonVariant& json) {
+        JsonObject root = json.as<JsonObject>();
+
+        // Helper lambda to parse one day array
+        auto parseDay = [&](const char* key, int* arr, int& count) {
+          count = 0;
+          JsonArray a = root[key].as<JsonArray>();
+          if (a.isNull()) return;
+          for (JsonVariant v : a) {
+            int id = v.as<int>();
+            if (id >= 0 && id < NUM_BINS && count < NUM_BINS) {
+              arr[count++] = id;
+            }
+          }
+        };
+
+        parseDay("mwf", sched.mwf, sched.mwfCount);
+        parseDay("tth", sched.tth, sched.tthCount);
+        parseDay("fs",  sched.fs,  sched.fsCount);
+
+        Serial.println("─────────────────────────────────");
+        Serial.println("[SERVER] Schedule updated:");
+        Serial.printf("  MWF (%d bins): ", sched.mwfCount);
+        for (int i = 0; i < sched.mwfCount; i++) Serial.printf("%d ", sched.mwf[i]);
+        Serial.println();
+        Serial.printf("  TTH (%d bins): ", sched.tthCount);
+        for (int i = 0; i < sched.tthCount; i++) Serial.printf("%d ", sched.tth[i]);
+        Serial.println();
+        Serial.printf("  FS  (%d bins): ", sched.fsCount);
+        for (int i = 0; i < sched.fsCount;  i++) Serial.printf("%d ",  sched.fs[i]);
+        Serial.println();
+
+        req->send(200, "application/json", "{\"status\":\"ok\"}");
+      }
+    );
+
+  // ── POST /api/zone/a ──────────────────────────
+  AsyncCallbackJsonWebHandler* zoneAHandler =
+    new AsyncCallbackJsonWebHandler("/api/zone/a",
+      [](AsyncWebServerRequest* req, JsonVariant& json) {
         JsonObject root = json.as<JsonObject>();
         JsonArray  arr  = root["bins"].as<JsonArray>();
 
@@ -140,48 +171,98 @@ AsyncCallbackJsonWebHandler* zoneAHandler =
           return;
         }
 
+        Serial.println("─────────────────────────────────");
+        Serial.println("[SERVER] Received Zone A update:");
+
         for (JsonObject b : arr) {
           int id = b["id"] | -1;
-          if (id < 0 || id > 7) continue; // Zone A = 0–7 only
+          if (id < 0 || id > 7) continue;
 
           int distMM = b["dist"] | BIN_DEPTH_MM;
           distMM     = constrain(distMM, 0, BIN_DEPTH_MM);
 
-          float fill = 100.0f *
-            (1.0f - (float)distMM / BIN_DEPTH_MM);
+          float fill = 100.0f * (1.0f - (float)distMM / BIN_DEPTH_MM);
           fill = constrain(fill, 0.0f, 100.0f);
 
           bins[id].distanceMM  = distMM;
           bins[id].fillPercent = fill;
           bins[id].isFull      = fill >= FULL_THRESHOLD;
           bins[id].sensorOK    = b["ok"] | true;
+
+          Serial.printf("  [Zone A] %s (id=%d) | dist=%4d mm | fill=%3.0f%% | %s\n",
+            bins[id].name.c_str(), id, bins[id].distanceMM,
+            bins[id].fillPercent, bins[id].isFull ? "FULL" : "OK");
         }
 
         lastZoneAUpdate = millis();
         req->send(200, "application/json", "{\"status\":\"ok\"}");
-
       }
     );
 
+  // ── POST /api/zone/b ──────────────────────────
+  AsyncCallbackJsonWebHandler* zoneBHandler =
+    new AsyncCallbackJsonWebHandler("/api/zone/b",
+      [](AsyncWebServerRequest* req, JsonVariant& json) {
+        JsonObject root = json.as<JsonObject>();
+        JsonArray  arr  = root["bins"].as<JsonArray>();
+
+        if (arr.isNull()) {
+          req->send(400, "application/json",
+            "{\"error\":\"missing bins array\"}");
+          return;
+        }
+
+        Serial.println("─────────────────────────────────");
+        Serial.println("[SERVER] Received Zone B update:");
+
+        for (JsonObject b : arr) {
+          int id = b["id"] | -1;
+          if (id < 8 || id > 15) continue;
+
+          int distMM = b["dist"] | BIN_DEPTH_MM;
+          distMM     = constrain(distMM, 0, BIN_DEPTH_MM);
+
+          float fill = 100.0f * (1.0f - (float)distMM / BIN_DEPTH_MM);
+          fill = constrain(fill, 0.0f, 100.0f);
+
+          bins[id].distanceMM  = distMM;
+          bins[id].fillPercent = fill;
+          bins[id].isFull      = fill >= FULL_THRESHOLD;
+          bins[id].sensorOK    = b["ok"] | true;
+
+          Serial.printf("  [Zone B] %s (id=%d) | dist=%4d mm | fill=%3.0f%% | %s\n",
+            bins[id].name.c_str(), id, bins[id].distanceMM,
+            bins[id].fillPercent, bins[id].isFull ? "FULL" : "OK");
+        }
+
+        lastZoneBUpdate = millis();
+        req->send(200, "application/json", "{\"status\":\"ok\"}");
+      }
+    );
+
+  server.addHandler(schedHandler);
   server.addHandler(zoneAHandler);
+  server.addHandler(zoneBHandler);
   server.begin();
   Serial.println("HTTP server started.");
 }
 
+
 // ======================================================
 void loop() {
-  // If Zone A node hasn't reported in ZONE_A_TIMEOUT_MS,
-  // mark Zone A bins offline so the dashboard shows it.
   if (millis() - lastZoneAUpdate > ZONE_A_TIMEOUT_MS
       && lastZoneAUpdate != 0) {
-    for (int i = 0; i < 8; i++) {
-      bins[i].sensorOK = false;
-    }
+    for (int i = 0; i < 8; i++) bins[i].sensorOK = false;
   }
 
-  applyMockDataZoneB();
+  if (millis() - lastZoneBUpdate > ZONE_B_TIMEOUT_MS
+      && lastZoneBUpdate != 0) {
+    for (int i = 8; i < 16; i++) bins[i].sensorOK = false;
+  }
+
   delay(2000);
 }
+
 
 // ======================================================
 void initBins() {
@@ -200,17 +281,5 @@ void initBins() {
     bins[i].sensorOK    = false;
     bins[i].mapX        = 8.0f + (i % 8) * 12.0f;
     bins[i].mapY        = (i < 8) ? 28.0f : 68.0f;
-  }
-}
-
-// ======================================================
-void applyMockDataZoneB() {
-  for (int i = 0; i < 8; i++) {
-    int idx = i + 8; // Bins B1–B8
-    bins[idx].fillPercent = MOCK_FILL_B[i];
-    bins[idx].distanceMM  = (int)(BIN_DEPTH_MM *
-      (1.0f - MOCK_FILL_B[i] / 100.0f));
-    bins[idx].isFull      = MOCK_FILL_B[i] >= FULL_THRESHOLD;
-    bins[idx].sensorOK    = true;
   }
 }

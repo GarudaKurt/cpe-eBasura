@@ -5,12 +5,8 @@
 
 class WEBUI {
   public:
-
     WEBUI();
-
-    // Returns full HTML page
     String buildHTML();
-
 };
 
 #endif
