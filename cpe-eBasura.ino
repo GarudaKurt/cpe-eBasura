@@ -44,6 +44,8 @@ struct ScheduleData {
   int tthCount;
   int fs[NUM_BINS];
   int fsCount;
+  int commercials[NUM_BINS];
+  int commercialsCount;
 };
 
 ScheduleData sched;
@@ -52,9 +54,11 @@ void initSchedule() {
   sched.mwfCount = 0;
   sched.tthCount = 0;
   sched.fsCount  = 0;
+  sched.commercialsCount = 0;   // ← NEW
   memset(sched.mwf, -1, sizeof(sched.mwf));
   memset(sched.tth, -1, sizeof(sched.tth));
   memset(sched.fs,  -1, sizeof(sched.fs));
+  memset(sched.commercials, -1, sizeof(sched.commercials)); // ← NEW
 }
 
 // ── Track last zone updates ──────────────────────
@@ -111,7 +115,12 @@ void setup() {
 
       JsonArray fsArr  = doc["fs"].to<JsonArray>();
       for (int i = 0; i < sched.fsCount;  i++) fsArr.add(sched.fs[i]);
+      
+      // ── NEW: include commercials ──────────────────
+      JsonArray commArr = doc["commercials"].to<JsonArray>();
+      for (int i = 0; i < sched.commercialsCount; i++)
 
+      commArr.add(sched.commercials[i]);
       String out;
       serializeJson(doc, out);
       req->send(200, "application/json", out);
@@ -141,6 +150,7 @@ void setup() {
         parseDay("mwf", sched.mwf, sched.mwfCount);
         parseDay("tth", sched.tth, sched.tthCount);
         parseDay("fs",  sched.fs,  sched.fsCount);
+        parseDay("commercials", sched.commercials, sched.commercialsCount); // ← NEW
 
         Serial.println("─────────────────────────────────");
         Serial.println("[SERVER] Schedule updated:");
@@ -153,6 +163,9 @@ void setup() {
         Serial.printf("  FS  (%d bins): ", sched.fsCount);
         for (int i = 0; i < sched.fsCount;  i++) Serial.printf("%d ",  sched.fs[i]);
         Serial.println();
+        Serial.printf("  COMM (%d bins): ", sched.commercialsCount);  // ← NEW
+        for (int i = 0; i < sched.commercialsCount; i++)              // ← NEW
+        Serial.printf("%d ", sched.commercials[i]);                 // ← NEW
 
         req->send(200, "application/json", "{\"status\":\"ok\"}");
       }

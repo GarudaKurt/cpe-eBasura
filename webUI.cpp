@@ -57,7 +57,7 @@ body{font-family:system-ui,sans-serif;background:#f3f4f2;color:#1a1a1a;height:10
 /* ── Modal overlay ────────────────────────── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .18s;}
 .modal-overlay.open{opacity:1;pointer-events:all;}
-.modal{background:#fff;border-radius:12px;border:0.5px solid #d8d8d0;width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;}
+.modal{background:#fff;border-radius:12px;border:0.5px solid #d8d8d0;width:100%;max-width:760px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;}
 
 /* ── Modal header ─────────────────────────── */
 .modal-hdr{display:flex;align-items:flex-start;justify-content:space-between;padding:15px 20px;border-bottom:0.5px solid #e8e8e0;}
@@ -66,8 +66,16 @@ body{font-family:system-ui,sans-serif;background:#f3f4f2;color:#1a1a1a;height:10
 .modal-close{width:28px;height:28px;border-radius:7px;border:0.5px solid #e0e0d8;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#888;font-size:16px;line-height:1;flex-shrink:0;}
 .modal-close:hover{background:#f3f4f2;}
 
-/* ── Modal body: two columns ──────────────── */
-.modal-body{display:grid;grid-template-columns:200px 1fr;flex:1;overflow:hidden;min-height:0;}
+/* ── Modal tabs ────────────────────────────── */
+.modal-tabs{display:flex;gap:0;border-bottom:0.5px solid #e8e8e0;padding:0 20px;background:#fff;}
+.tab-btn{padding:9px 14px;font-size:12px;font-weight:500;color:#888;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;transition:color .12s,border-color .12s;}
+.tab-btn.active{color:#1a1a1a;border-bottom-color:#1d9e75;}
+.tab-btn:hover:not(.active){color:#555;}
+.tab-content{display:none;flex:1;overflow:hidden;min-height:0;}
+.tab-content.active{display:flex;}
+
+/* ── Modal body: two columns (schedule tab) ── */
+.modal-body{display:grid;grid-template-columns:200px 1fr;flex:1;overflow:hidden;min-height:0;width:100%;}
 
 /* ── Bin list panel (left) ────────────────── */
 .bin-panel{padding:12px 14px;border-right:0.5px solid #e8e8e0;overflow-y:auto;}
@@ -80,6 +88,7 @@ body{font-family:system-ui,sans-serif;background:#f3f4f2;color:#1a1a1a;height:10
 .bi-badge-mwf{background:#e1f5ee;color:#0f6e56;}
 .bi-badge-tth{background:#e6f1fb;color:#185fa5;}
 .bi-badge-fs{background:#faeeda;color:#854f0b;}
+.bi-badge-comm{background:#fce4ec;color:#b71c1c;}
 .add-wrap{position:relative;flex-shrink:0;}
 .add-btn{font-size:10px;padding:3px 7px;border-radius:5px;border:0.5px solid #d8d8d0;background:#fff;cursor:pointer;color:#555;white-space:nowrap;}
 .add-btn:hover{border-color:#aaa;background:#f3f4f2;}
@@ -107,6 +116,28 @@ body{font-family:system-ui,sans-serif;background:#f3f4f2;color:#1a1a1a;height:10
 .chip-x{border:none;background:transparent;color:#bbb;cursor:pointer;font-size:13px;line-height:1;padding:0;margin-left:1px;}
 .chip-x:hover{color:#c62828;}
 
+/* ── Commercial tab ───────────────────────── */
+.comm-tab-body{flex:1;overflow-y:auto;padding:14px 16px;background:#f8f8f4;width:100%;}
+.comm-intro{background:#fff3e0;border:0.5px solid #ffe082;border-radius:9px;padding:10px 13px;margin-bottom:12px;display:flex;gap:9px;align-items:flex-start;}
+.comm-intro-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.comm-intro-text{font-size:12px;color:#6d4c00;line-height:1.55;}
+.comm-intro-text strong{font-weight:600;}
+.comm-zone-card{background:#fff;border:0.5px solid #e8e8e0;border-radius:9px;margin-bottom:9px;overflow:hidden;}
+.comm-zone-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:0.5px solid #f0f0e8;}
+.comm-zone-title{font-size:12px;font-weight:500;color:#1a1a1a;display:flex;align-items:center;gap:7px;}
+.comm-zone-dot{width:8px;height:8px;border-radius:50%;}
+.comm-zone-sub{font-size:11px;color:#aaa;}
+.comm-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:10px 12px;}
+.comm-bin-card{border:0.5px solid #e8e8e0;border-radius:7px;padding:8px 9px;background:#f8f8f4;cursor:pointer;transition:border-color .12s,background .12s;position:relative;user-select:none;}
+.comm-bin-card:hover{background:#f0f0e8;border-color:#ccc;}
+.comm-bin-card.selected{border-color:#b71c1c;background:#fff5f5;}
+.comm-bin-card.selected .comm-check{opacity:1;}
+.comm-check{position:absolute;top:6px;right:7px;width:14px;height:14px;border-radius:50%;background:#b71c1c;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .12s;}
+.comm-check svg{display:block;}
+.comm-bin-name{font-size:11px;font-weight:500;color:#1a1a1a;}
+.comm-bin-fill{font-size:10px;color:#888;margin-top:2px;}
+.comm-count-note{font-size:11px;color:#aaa;padding:0 12px 10px;text-align:right;}
+
 /* ── Modal footer ─────────────────────────── */
 .modal-ftr{display:flex;align-items:center;justify-content:space-between;padding:11px 20px;border-top:0.5px solid #e8e8e0;background:#fff;}
 .ftr-note{font-size:12px;color:#aaa;}
@@ -116,9 +147,25 @@ body{font-family:system-ui,sans-serif;background:#f3f4f2;color:#1a1a1a;height:10
 .btn-pri{padding:6px 13px;border-radius:7px;border:none;background:#1d9e75;cursor:pointer;font-size:12px;font-weight:500;color:#fff;}
 .btn-pri:hover{background:#0f6e56;}
 .btn-pri:disabled{background:#b0d8c8;cursor:default;}
+
+/* ── Alert banner ─────────────────────────── */
+.alert-banner{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:300;display:flex;flex-direction:column;gap:6px;padding-top:10px;pointer-events:none;width:100%;max-width:520px;padding-left:16px;padding-right:16px;}
+.alert-item{display:flex;align-items:flex-start;gap:10px;background:#fff;border:1px solid #f44336;border-left:4px solid #c62828;border-radius:9px;padding:10px 12px;box-shadow:0 4px 16px rgba(198,40,40,.13);pointer-events:all;animation:alertIn .22s cubic-bezier(.22,1,.36,1);}
+@keyframes alertIn{from{opacity:0;transform:translateY(-12px);}to{opacity:1;transform:none;}}
+.alert-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.alert-body{flex:1;min-width:0;}
+.alert-title{font-size:12px;font-weight:600;color:#c62828;}
+.alert-msg{font-size:11px;color:#555;margin-top:2px;line-height:1.45;}
+.alert-close{border:none;background:transparent;color:#aaa;cursor:pointer;font-size:15px;line-height:1;padding:0;flex-shrink:0;align-self:flex-start;}
+.alert-close:hover{color:#c62828;}
 </style>
 </head>
 <body>
+
+<!-- ══════════════════════════════════════════
+     ALERT BANNER
+══════════════════════════════════════════════ -->
+<div class="alert-banner" id="alert-banner"></div>
 
 <!-- ══════════════════════════════════════════
      HEADER
@@ -196,28 +243,56 @@ body{font-family:system-ui,sans-serif;background:#f3f4f2;color:#1a1a1a;height:10
     <div class="modal-hdr">
       <div class="modal-hdr-text">
         <h2>Bin Collection Schedule</h2>
-        <p>Assign bins to collection days — MWF, TTH, or FS</p>
+        <p>Assign bins to collection days and mark commercial bins for priority alerts</p>
       </div>
       <button class="modal-close" onclick="closeSchedModal()">&#x2715;</button>
     </div>
 
-    <div class="modal-body">
-      <!-- Left: bin list -->
-      <div class="bin-panel">
-        <div class="panel-lbl">Available bins</div>
-        <div id="modal-bin-list"></div>
-      </div>
+    <!-- Tabs -->
+    <div class="modal-tabs">
+      <button class="tab-btn active" id="tab-sched-btn" onclick="switchTab('sched')">
+        Collection Schedule
+      </button>
+      <button class="tab-btn" id="tab-comm-btn" onclick="switchTab('comm')">
+        Commercial Bins
+        <span id="comm-count-badge" style="display:none;margin-left:5px;background:#fce4ec;color:#b71c1c;font-size:10px;padding:1px 5px;border-radius:4px;font-weight:600;"></span>
+      </button>
+    </div>
 
-      <!-- Right: schedule -->
-      <div class="sched-panel">
-        <div id="modal-sched-groups"></div>
+    <!-- Schedule tab -->
+    <div class="tab-content active" id="tab-sched">
+      <div class="modal-body">
+        <!-- Left: bin list -->
+        <div class="bin-panel">
+          <div class="panel-lbl">Available bins</div>
+          <div id="modal-bin-list"></div>
+        </div>
+        <!-- Right: schedule -->
+        <div class="sched-panel">
+          <div id="modal-sched-groups"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Commercial bins tab -->
+    <div class="tab-content" id="tab-comm">
+      <div class="comm-tab-body">
+        <div class="comm-intro">
+          <div class="comm-intro-icon">&#9888;&#65039;</div>
+          <div class="comm-intro-text">
+            <strong>Commercial bins</strong> are high-priority bins (e.g. from businesses or high-traffic areas).
+            When a commercial bin is <strong>full (&ge;90%)</strong> and <strong>not yet scheduled</strong> for collection,
+            an immediate alert will appear on the dashboard.
+          </div>
+        </div>
+        <div id="comm-zone-list"></div>
       </div>
     </div>
 
     <div class="modal-ftr">
       <span class="ftr-note" id="modal-ftr-note">0 bins assigned</span>
       <div class="ftr-btns">
-        <button class="btn-sec" onclick="clearAllSched()">Clear all</button>
+        <button class="btn-sec" id="ftr-clear-btn" onclick="clearAllSched()">Clear all</button>
         <button class="btn-pri" id="save-btn" onclick="saveSchedule()">Save schedule</button>
       </div>
     </div>
@@ -251,9 +326,13 @@ const DAYS = [
   {key:"fs", label:"Fri / Sat",      badge:"FS", badgeCls:"bi-badge-fs", dot:"#ef9f27"}
 ];
 
-// ── Schedule state: {mwf:[], tth:[], fs:[]} ──
-let schedule = {mwf:[],tth:[],fs:[]};
-let activeDD  = null; // currently open dropdown bin id
+// ── Schedule state ───────────────────────────
+let schedule     = {mwf:[],tth:[],fs:[]};
+let commercials  = [];   // array of bin IDs marked as commercial
+let activeDD     = null;
+let activeTab    = 'sched';
+let lastBinsData = [];   // latest bin data from /api/bins
+let dismissedAlerts = new Set(); // alert keys already dismissed this session
 
 // ════════════════════════════════════════════
 // Dashboard rendering
@@ -279,10 +358,13 @@ function renderMap(bins) {
     const r = 15, arcR = 10;
     const circ = 2 * Math.PI * arcR;
     const dash = (b.fill / 100) * circ;
+    const isComm = commercials.includes(b.id);
 
     const bg = document.createElementNS(NS, 'circle');
     bg.setAttribute('cx', cx); bg.setAttribute('cy', cy); bg.setAttribute('r', r);
-    bg.setAttribute('fill', '#fff'); bg.setAttribute('stroke', '#ddd'); bg.setAttribute('stroke-width', '0.5');
+    bg.setAttribute('fill', '#fff');
+    bg.setAttribute('stroke', isComm ? '#e57373' : '#ddd');
+    bg.setAttribute('stroke-width', isComm ? '1.5' : '0.5');
     g.appendChild(bg);
 
     const arc = document.createElementNS(NS, 'circle');
@@ -308,7 +390,7 @@ function renderMap(bins) {
     lbl.setAttribute('font-family', 'system-ui,sans-serif');
     lbl.setAttribute('font-size', '8.5');
     lbl.setAttribute('fill', '#aaa');
-    lbl.textContent = b.name;
+    lbl.textContent = b.name + (isComm ? ' ★' : '');
     g.appendChild(lbl);
 
     const hit = document.createElementNS(NS, 'circle');
@@ -326,7 +408,8 @@ function showTip(e, b) {
   const tip  = document.getElementById('tip');
   const rect = document.querySelector('.map-area').getBoundingClientRect();
   const col  = statusColor(b.fill);
-  tip.innerHTML = `<b>${b.name}</b><br>Fill: <span style="color:${col};font-weight:500">${b.fill}%</span> - ${statusLabel(b.fill)}<br>Dist: ${b.dist} mm`;
+  const isComm = commercials.includes(b.id);
+  tip.innerHTML = `<b>${b.name}</b>${isComm ? ' <span style="color:#b71c1c;font-size:10px;">★ Commercial</span>' : ''}<br>Fill: <span style="color:${col};font-weight:500">${b.fill}%</span> - ${statusLabel(b.fill)}<br>Dist: ${b.dist} mm`;
   tip.style.left = (e.clientX - rect.left + 14) + 'px';
   tip.style.top  = (e.clientY - rect.top  - 10) + 'px';
   tip.classList.add('show');
@@ -336,13 +419,14 @@ function renderList(bins) {
   const el = document.getElementById('blist');
   el.innerHTML = '';
   bins.forEach(b => {
-    const col = statusColor(b.fill);
-    const row = document.createElement('div');
+    const col    = statusColor(b.fill);
+    const isComm = commercials.includes(b.id);
+    const row    = document.createElement('div');
     row.className = 'brow'; row.id = 'row-' + b.id;
     row.innerHTML = `
       <div class="bdot" style="background:${col}"></div>
       <div style="flex:1;min-width:0">
-        <div class="bname">${b.name}</div>
+        <div class="bname">${b.name}${isComm ? ' <span style="font-size:9px;background:#fce4ec;color:#b71c1c;padding:1px 4px;border-radius:3px;font-weight:500;">COMM</span>' : ''}</div>
         <div class="bstatus">${statusLabel(b.fill)}</div>
       </div>
       <div>
@@ -379,9 +463,11 @@ async function fetchBins() {
   try {
     const res  = await fetch('/api/bins');
     const data = await res.json();
+    lastBinsData = data.bins;
     renderMap(data.bins);
     renderList(data.bins);
     renderStats(data.bins);
+    checkCommercialAlerts(data.bins);
     document.getElementById('conn-badge').className   = 'badge badge-ok';
     document.getElementById('conn-badge').textContent = 'Live';
   } catch (e) {
@@ -394,6 +480,71 @@ setInterval(fetchBins, REFRESH_MS);
 setInterval(tick, 1000);
 fetchBins();
 tick();
+
+// ════════════════════════════════════════════
+// Commercial alert logic
+// ════════════════════════════════════════════
+
+// Returns true if binId is in any collection schedule day
+function isBinScheduled(binId) {
+  return DAYS.some(d => schedule[d.key].includes(binId));
+}
+
+function checkCommercialAlerts(bins) {
+  const banner = document.getElementById('alert-banner');
+
+  // Build set of alert keys that should currently show
+  const activeKeys = new Set();
+
+  commercials.forEach(binId => {
+    const bin = bins.find(b => b.id === binId);
+    if (!bin || !bin.ok) return; // skip offline
+    if (bin.fill < 90) return;  // not full
+    if (isBinScheduled(binId)) return; // already scheduled
+
+    activeKeys.add('comm-full-' + binId);
+  });
+
+  // Remove alerts that are no longer relevant (bin emptied / scheduled)
+  Array.from(banner.children).forEach(el => {
+    const key = el.dataset.alertKey;
+    if (!activeKeys.has(key)) el.remove();
+  });
+
+  // Add new alerts
+  activeKeys.forEach(key => {
+    if (dismissedAlerts.has(key)) return;
+    if (document.querySelector(`[data-alert-key="${key}"]`)) return; // already shown
+
+    const binId  = parseInt(key.replace('comm-full-', ''));
+    const bin    = bins.find(b => b.id === binId);
+    const binObj = ALL_BINS.find(b => b.id === binId);
+    if (!bin || !binObj) return;
+
+    const el = document.createElement('div');
+    el.className = 'alert-item';
+    el.dataset.alertKey = key;
+    el.innerHTML = `
+      <div class="alert-icon">&#128721;</div>
+      <div class="alert-body">
+        <div class="alert-title">Commercial bin full — Immediate action needed!</div>
+        <div class="alert-msg">
+          <strong>${binObj.name}</strong> (Zone ${binObj.zone.toUpperCase()}) is
+          <strong>${bin.fill}% full</strong> and has no scheduled collection.
+          Please arrange an immediate pickup or assign it to a collection day.
+        </div>
+      </div>
+      <button class="alert-close" title="Dismiss" onclick="dismissAlert('${key}',this.closest('.alert-item'))">&#x2715;</button>`;
+    banner.appendChild(el);
+  });
+}
+
+function dismissAlert(key, el) {
+  dismissedAlerts.add(key);
+  el.style.transition = 'opacity .2s';
+  el.style.opacity = '0';
+  setTimeout(() => el.remove(), 200);
+}
 
 // ════════════════════════════════════════════
 // Schedule modal logic
@@ -412,20 +563,61 @@ function totalAssigned() {
   return s.size;
 }
 
-// ── Open modal & load current schedule from ESP ──
+// ── Tab switching ────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('tab-sched').classList.toggle('active', tab === 'sched');
+  document.getElementById('tab-comm').classList.toggle('active',  tab === 'comm');
+  document.getElementById('tab-sched-btn').classList.toggle('active', tab === 'sched');
+  document.getElementById('tab-comm-btn').classList.toggle('active',  tab === 'comm');
+
+  // Update footer based on tab
+  const clearBtn = document.getElementById('ftr-clear-btn');
+  const saveBtn  = document.getElementById('save-btn');
+  if (tab === 'comm') {
+    clearBtn.textContent = 'Clear commercial';
+    clearBtn.onclick     = clearAllComm;
+    saveBtn.textContent  = 'Save commercial';
+    saveBtn.onclick      = saveCommercials;
+  } else {
+    clearBtn.textContent = 'Clear all';
+    clearBtn.onclick     = clearAllSched;
+    saveBtn.textContent  = 'Save schedule';
+    saveBtn.onclick      = saveSchedule;
+  }
+
+  updateFooterNote();
+}
+
+function updateFooterNote() {
+  if (activeTab === 'comm') {
+    const n = commercials.length;
+    document.getElementById('modal-ftr-note').textContent =
+      n + ' commercial bin' + (n !== 1 ? 's' : '') + ' selected';
+  } else {
+    const n = totalAssigned();
+    document.getElementById('modal-ftr-note').textContent =
+      n + ' bin' + (n !== 1 ? 's' : '') + ' assigned';
+  }
+}
+
+// ── Open modal & load current schedule + commercials from ESP ──
 async function openSchedModal() {
-  // Try to load existing schedule from the server
   try {
-    const res  = await fetch('/api/schedule');
+    const res = await fetch('/api/schedule');
     if (res.ok) {
       const data = await res.json();
       schedule.mwf = data.mwf || [];
       schedule.tth = data.tth || [];
       schedule.fs  = data.fs  || [];
+      commercials  = data.commercials || [];
     }
-  } catch (_) { /* server may not have one yet, use empty */ }
+  } catch (_) {}
 
+  // Reset to schedule tab
+  switchTab('sched');
   renderModal();
+  renderCommTab();
   document.getElementById('sched-overlay').classList.add('open');
 }
 
@@ -434,12 +626,11 @@ function closeSchedModal() {
   closeDD();
 }
 
-// Close modal on backdrop click
 function overlayClick(e) {
   if (e.target === document.getElementById('sched-overlay')) closeSchedModal();
 }
 
-// ── Assign bin to a day, removing from any other ──
+// ── Assign bin to a day ──
 function assignBin(binId, dayKey) {
   DAYS.forEach(d => { schedule[d.key] = schedule[d.key].filter(id => id !== binId); });
   if (!schedule[dayKey].includes(binId)) schedule[dayKey].push(binId);
@@ -462,7 +653,34 @@ function clearAllSched() {
   renderModal();
 }
 
-// ── Dropdown helpers ─────────────────────────────
+// ── Commercial bins management ──
+function toggleCommercial(binId) {
+  const idx = commercials.indexOf(binId);
+  if (idx === -1) commercials.push(binId);
+  else commercials.splice(idx, 1);
+  renderCommTab();
+  updateCommBadge();
+  updateFooterNote();
+}
+
+function clearAllComm() {
+  commercials = [];
+  renderCommTab();
+  updateCommBadge();
+  updateFooterNote();
+}
+
+function updateCommBadge() {
+  const badge = document.getElementById('comm-count-badge');
+  if (commercials.length > 0) {
+    badge.textContent = commercials.length;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ── Dropdown helpers ──
 function toggleDD(binId, event) {
   event.stopPropagation();
   if (activeDD === binId) { closeDD(); return; }
@@ -482,22 +700,21 @@ function closeDD() {
 
 document.addEventListener('click', closeDD);
 
-// ── Render entire modal content ──────────────────
+// ── Render schedule tab ──
 function renderModal() {
   renderModalBinList();
   renderModalSchedGroups();
-  const n = totalAssigned();
-  document.getElementById('modal-ftr-note').textContent =
-    n + ' bin' + (n !== 1 ? 's' : '') + ' assigned';
+  updateFooterNote();
 }
 
 function renderModalBinList() {
   const el = document.getElementById('modal-bin-list');
   el.innerHTML = '';
   ALL_BINS.forEach(bin => {
-    const assigned  = getAssignedDay(bin.id);
-    const dayInfo   = assigned ? DAYS.find(d => d.key === assigned) : null;
-    const btnLabel  = assigned ? 'Move' : '+ Add';
+    const assigned = getAssignedDay(bin.id);
+    const dayInfo  = assigned ? DAYS.find(d => d.key === assigned) : null;
+    const isComm   = commercials.includes(bin.id);
+    const btnLabel = assigned ? 'Move' : '+ Add';
 
     const row = document.createElement('div');
     row.className = 'bin-item';
@@ -505,6 +722,7 @@ function renderModalBinList() {
       <div class="bin-item-left">
         <span class="bi-dot" style="background:${dotColor(bin.zone)}"></span>
         <span class="bi-name">${bin.name}</span>
+        ${isComm   ? `<span class="bi-badge bi-badge-comm">COMM</span>` : ''}
         ${assigned ? `<span class="bi-badge ${dayInfo.badgeCls}">${dayInfo.badge}</span>` : ''}
       </div>
       <div class="add-wrap" id="wrap-${bin.id}">
@@ -532,11 +750,12 @@ function renderModalSchedGroups() {
 
     const chipsHtml = binIds.length
       ? binIds.map(id => {
-          const bin = ALL_BINS.find(b => b.id === id);
+          const bin    = ALL_BINS.find(b => b.id === id);
+          const isComm = commercials.includes(id);
           if (!bin) return '';
           return `<span class="chip">
             <span class="chip-dot" style="background:${dotColor(bin.zone)}"></span>
-            ${bin.name}
+            ${bin.name}${isComm ? ' <span style="font-size:9px;color:#b71c1c;">★</span>' : ''}
             <button class="chip-x" onclick="removeChip(${id},'${day.key}')" title="Remove">&#x2715;</button>
           </span>`;
         }).join('')
@@ -558,20 +777,77 @@ function renderModalSchedGroups() {
   });
 }
 
-// ── POST schedule to ESP32 ───────────────────────
+// ── Render commercial bins tab ──
+function renderCommTab() {
+  const el = document.getElementById('comm-zone-list');
+  el.innerHTML = '';
+
+  const zones = [
+    {key:'a', label:'Zone A — North', dot:'#1d9e75', ids:[0,1,2,3,4,5,6,7]},
+    {key:'b', label:'Zone B — South', dot:'#378add', ids:[8,9,10,11,12,13,14,15]}
+  ];
+
+  zones.forEach(zone => {
+    const card = document.createElement('div');
+    card.className = 'comm-zone-card';
+
+    const selCount = zone.ids.filter(id => commercials.includes(id)).length;
+
+    card.innerHTML = `
+      <div class="comm-zone-hdr">
+        <div class="comm-zone-title">
+          <span class="comm-zone-dot" style="background:${zone.dot}"></span>
+          ${zone.label}
+        </div>
+        <span class="comm-zone-sub">${selCount} commercial</span>
+      </div>
+      <div class="comm-grid" id="comm-grid-${zone.key}"></div>
+      <div class="comm-count-note">Click a bin to toggle commercial status</div>`;
+
+    el.appendChild(card);
+
+    const grid = card.querySelector(`#comm-grid-${zone.key}`);
+    zone.ids.forEach(binId => {
+      const bin      = ALL_BINS.find(b => b.id === binId);
+      const isComm   = commercials.includes(binId);
+      const liveData = lastBinsData.find(b => b.id === binId);
+      const fill     = liveData ? liveData.fill : 0;
+
+      const bcard = document.createElement('div');
+      bcard.className = 'comm-bin-card' + (isComm ? ' selected' : '');
+      bcard.onclick   = () => toggleCommercial(binId);
+      bcard.innerHTML = `
+        <div class="comm-check">
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+            <path d="M1.5 4L3.2 5.8L6.5 2.2" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="comm-bin-name">${bin.name}</div>
+        <div class="comm-bin-fill">${fill}% full</div>`;
+      grid.appendChild(bcard);
+    });
+  });
+
+  updateCommBadge();
+}
+
+// ── POST schedule + commercials to ESP32 ──
 async function saveSchedule() {
   const btn = document.getElementById('save-btn');
   btn.disabled = true;
   btn.textContent = 'Saving...';
 
   try {
+    const payload = { ...schedule, commercials };
     const res = await fetch('/api/schedule', {
       method:  'POST',
       headers: {'Content-Type':'application/json'},
-      body:    JSON.stringify(schedule)
+      body:    JSON.stringify(payload)
     });
     if (res.ok) {
       btn.textContent = 'Saved!';
+      // Clear dismissed alerts so they re-evaluate after new schedule
+      dismissedAlerts.clear();
       setTimeout(() => {
         btn.disabled    = false;
         btn.textContent = 'Save schedule';
@@ -584,6 +860,36 @@ async function saveSchedule() {
     btn.disabled    = false;
     btn.textContent = 'Save schedule';
     alert('Could not save schedule. Check connection.');
+  }
+}
+
+async function saveCommercials() {
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    const payload = { ...schedule, commercials };
+    const res = await fetch('/api/schedule', {
+      method:  'POST',
+      headers: {'Content-Type':'application/json'},
+      body:    JSON.stringify(payload)
+    });
+    if (res.ok) {
+      btn.textContent = 'Saved!';
+      dismissedAlerts.clear();
+      setTimeout(() => {
+        btn.disabled    = false;
+        btn.textContent = 'Save commercial';
+        closeSchedModal();
+      }, 900);
+    } else {
+      throw new Error('Server error');
+    }
+  } catch (_) {
+    btn.disabled    = false;
+    btn.textContent = 'Save commercial';
+    alert('Could not save. Check connection.');
   }
 }
 </script>
