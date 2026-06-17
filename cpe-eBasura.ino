@@ -3,6 +3,7 @@
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
+#include <HTTPClient.h>
 
 #include "webUI.h"
 #include "webJson.h"
@@ -10,10 +11,15 @@
 WEBUI    web;
 WEBJSON  webjson;
 
+
 AsyncWebServer server(80);
 
 const char* WIFI_SSID     = "KurtTyler";
 const char* WIFI_PASSWORD = "Pandemaca0";
+
+// ── Zone ESP32 IPs ───────────────────────────
+const char* ZONE_A_IP = "192.168.1.29";   // ← replace with Zone A's actual IP
+const char* ZONE_B_IP = "192.168.1.28";   // ← replace with Zone B's actual IP
 
 #define NUM_BINS       8     // 4x Zone A + 4x Zone B
 #define BIN_DEPTH_MM   400
@@ -63,7 +69,6 @@ void initSchedule() {
 unsigned long lastZoneAUpdate = 0;
 unsigned long lastZoneBUpdate = 0;
 const unsigned long ZONE_TIMEOUT_MS = 10000;
-
 
 int distToPercent(int distMm) {
   if (distMm <= 50)  return 100;   // < 50mm  → 100%
@@ -239,7 +244,7 @@ void setup() {
           distMM     = constrain(distMM, 0, BIN_DEPTH_MM);
 
           float fill = (float)distToPercent(distMM);
-          
+
           bins[id].distanceMM  = distMM;
           bins[id].fillPercent = fill;
           bins[id].isFull      = fill >= FULL_THRESHOLD;
@@ -256,6 +261,52 @@ void setup() {
         req->send(200, "application/json", "{\"status\":\"ok\"}");
       }
     );
+
+  // ── POST /api/pick — forward pick to correct zone ─────────────────────────
+  // Call as: POST /api/pick  (body: bin=<id>)
+  // Zone A owns ids 0–3 → forwards to ZONE_A_IP
+  // Zone B owns ids 4–7 → forwards to ZONE_B_IP
+  server.on("/api/pick", HTTP_POST,
+    [](AsyncWebServerRequest* req) {
+      // true = read from POST body (form-encoded), not query string
+      if (!req->hasParam("bin", true)) {
+        req->send(400, "application/json", "{\"error\":\"missing bin param\"}");
+        return;
+      }
+
+      int binId = req->getParam("bin", true)->value().toInt();
+
+      if (binId < 0 || binId > 7) {
+        Serial.printf("[PICK] ERR — out of range bin id: %d\n", binId);
+        req->send(400, "application/json", "{\"error\":\"bin id must be 0-7\"}");
+        return;
+      }
+
+      bool        isZoneA  = (binId <= 3);
+      const char* zoneIP   = isZoneA ? ZONE_A_IP : ZONE_B_IP;
+      const char* zoneName = isZoneA ? "A" : "B";
+
+      Serial.printf("[PICK] bin=%d → Zone %s (%s)\n", binId, zoneName, zoneIP);
+
+      HTTPClient http;
+      String url = String("http://") + zoneIP + "/api/pick";
+      http.begin(url);
+      http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+      String body = "bin=" + String(binId);
+      int code = http.POST(body);
+
+      Serial.printf("[PICK] Zone %s responded: %d\n", zoneName, code);
+      http.end();
+
+      if (code == 200) {
+        req->send(200, "application/json", "{\"status\":\"ok\"}");
+      } else {
+        Serial.printf("[PICK] ERR — Zone %s unreachable (code=%d)\n", zoneName, code);
+        req->send(502, "application/json", "{\"error\":\"zone ESP32 unreachable\"}");
+      }
+    }
+  );
 
   server.addHandler(schedHandler);
   server.addHandler(zoneAHandler);

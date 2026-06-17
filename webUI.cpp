@@ -530,17 +530,33 @@ async function triggerPick(event, binId, binName) {
   event.stopPropagation();
   const btn = document.getElementById('pick-btn-' + binId);
   if (!btn || btn.disabled) return;
-  btn.disabled = true; btn.textContent = 'Sending...';
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
   try {
-    await fetch('http://' + ESP32_A_IP + '/PICK', {mode:'no-cors'});
-    btn.textContent = '\u2713 Sent!';
-    btn.style.background = '#2e7d32';
-    setTimeout(() => {
-      if (btn) { btn.disabled = false; btn.textContent = '\uD83E\uDDA8 Pick Up'; btn.style.background = ''; }
-    }, 4000);
+    const res = await fetch('/api/pick', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'bin=' + binId   // ← sends as form body, no regex needed
+    });
+    if (res.ok) {
+      btn.textContent = '\u2713 Opened!';
+      btn.style.background = '#2e7d32';
+      setTimeout(() => {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '\uD83E\uDDA8 Pick Up';
+          btn.style.background = '';
+        }
+      }, 4000);
+    } else {
+      throw new Error('Server error ' + res.status);
+    }
   } catch (e) {
-    btn.disabled = false; btn.textContent = '\uD83E\uDDA8 Pick Up'; btn.style.background = '';
-    alert('Could not reach ESP32 A (' + ESP32_A_IP + ').\nCheck IP and WiFi.');
+    btn.disabled = false;
+    btn.textContent = '\uD83E\uDDA8 Pick Up';
+    btn.style.background = '';
+    alert('Could not open ' + binName + '.\n' + e.message);
   }
 }
 
