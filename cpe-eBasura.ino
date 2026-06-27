@@ -14,12 +14,14 @@ WEBJSON  webjson;
 
 AsyncWebServer server(80);
 
-const char* WIFI_SSID     = "KurtTyler";
-const char* WIFI_PASSWORD = "Pandemaca0";
+const char* WIFI_SSID     = "Checo";
+const char* WIFI_PASSWORD = "12345678";
 
 // ── Zone ESP32 IPs ───────────────────────────
-const char* ZONE_A_IP = "192.168.1.29";   // ← replace with Zone A's actual IP
-const char* ZONE_B_IP = "192.168.1.28";   // ← replace with Zone B's actual IP
+const char* ZONE_A_IP = "10.98.96.109";   // ← replace with Zone A's actual IP
+const char* ZONE_B_IP = "10.98.96.27";   // ← replace with Zone B's actual IP
+const char* ROBOT_ARM_IP = "10.98.96.254";   // ← replace with your robot arm ESP32 IP
+
 
 #define NUM_BINS       8     // 4x Zone A + 4x Zone B
 #define BIN_DEPTH_MM   400
@@ -266,47 +268,75 @@ void setup() {
   // Call as: POST /api/pick  (body: bin=<id>)
   // Zone A owns ids 0–3 → forwards to ZONE_A_IP
   // Zone B owns ids 4–7 → forwards to ZONE_B_IP
-  server.on("/api/pick", HTTP_POST,
-    [](AsyncWebServerRequest* req) {
-      // true = read from POST body (form-encoded), not query string
-      if (!req->hasParam("bin", true)) {
-        req->send(400, "application/json", "{\"error\":\"missing bin param\"}");
-        return;
-      }
+// ── POST /api/pick — open servo + trigger arm after 5s ──────────────────
+server.on("/api/pick", HTTP_POST,
+  [](AsyncWebServerRequest* req) {
 
-      int binId = req->getParam("bin", true)->value().toInt();
+    if (!req->hasParam("bin", true)) {
+      req->send(400, "application/json", "{\"error\":\"missing bin param\"}");
+      return;
+    }
 
-      if (binId < 0 || binId > 7) {
-        Serial.printf("[PICK] ERR — out of range bin id: %d\n", binId);
-        req->send(400, "application/json", "{\"error\":\"bin id must be 0-7\"}");
-        return;
-      }
+    int binId = req->getParam("bin", true)->value().toInt();
 
-      bool        isZoneA  = (binId <= 3);
-      const char* zoneIP   = isZoneA ? ZONE_A_IP : ZONE_B_IP;
-      const char* zoneName = isZoneA ? "A" : "B";
+    if (binId < 0 || binId > 7) {
+      req->send(400, "application/json", "{\"error\":\"bin id must be 0-7\"}");
+      return;
+    }
 
-      Serial.printf("[PICK] bin=%d → Zone %s (%s)\n", binId, zoneName, zoneIP);
+    bool        isZoneA  = (binId <= 3);
+    const char* zoneIP   = isZoneA ? ZONE_A_IP : ZONE_B_IP;
+    const char* zoneName = isZoneA ? "A" : "B";
 
+    Serial.printf("[PICK] bin=%d → Zone %s (%s)\n", binId, zoneName, zoneIP);
+
+    // ── Step 1: Send open-servo command to Zone ESP32 ──
+    {
       HTTPClient http;
       String url = String("http://") + zoneIP + "/api/pick";
       http.begin(url);
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-
       String body = "bin=" + String(binId);
       int code = http.POST(body);
-
-      Serial.printf("[PICK] Zone %s responded: %d\n", zoneName, code);
+      Serial.printf("[PICK] Zone %s servo open: %d\n", zoneName, code);
       http.end();
 
-      if (code == 200) {
-        req->send(200, "application/json", "{\"status\":\"ok\"}");
-      } else {
-        Serial.printf("[PICK] ERR — Zone %s unreachable (code=%d)\n", zoneName, code);
+      if (code != 200) {
         req->send(502, "application/json", "{\"error\":\"zone ESP32 unreachable\"}");
+        return;
       }
     }
-  );
+
+    // ── Step 2: Reply immediately so the button updates ──
+    req->send(200, "application/json", "{\"status\":\"ok\"}");
+
+    // ── Step 3: Wait 5s then trigger robot arm (background task) ──
+    int* binIdHeap = new int(binId);   // heap-allocate so lambda can capture it
+
+    xTaskCreate(
+      [](void* param) {
+        int id = *(int*)param;
+        delete (int*)param;
+
+        vTaskDelay(pdMS_TO_TICKS(5000));   // wait 5 seconds
+
+        HTTPClient http;
+        String url = String("http://") + ROBOT_ARM_IP + "/PICK";
+        http.begin(url);
+        int code = http.GET();
+        Serial.printf("[PICK-ARM] runPick() triggered for bin=%d, code=%d\n", id, code);
+        http.end();
+
+        vTaskDelete(NULL);   // clean up task
+      },
+      "pick_arm_task",   // task name
+      4096,              // stack size
+      binIdHeap,         // parameter
+      1,                 // priority
+      NULL               // handle (not needed)
+    );
+  }
+);
 
   server.addHandler(schedHandler);
   server.addHandler(zoneAHandler);

@@ -537,29 +537,40 @@ async function triggerPick(event, binId, binName) {
     const res = await fetch('/api/pick', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'bin=' + binId   // ← sends as form body, no regex needed
+      body: 'bin=' + binId
     });
     if (res.ok) {
-      btn.textContent = '\u2713 Opened!';
-      btn.style.background = '#2e7d32';
+      // Phase 1: servo opening (0-4s)
+      btn.textContent = '↗ Servo open...';
+      btn.style.background = '#1565c0';   // blue
+
+      // Phase 2: arm about to move (4-9s)
+      setTimeout(() => {
+        if (btn && btn.disabled) {
+          btn.textContent = '🦾 Arm moving...';
+          btn.style.background = '#e65100';   // orange
+        }
+      }, 4000);
+
+      // Phase 3: done (9s+)
       setTimeout(() => {
         if (btn) {
           btn.disabled = false;
-          btn.textContent = '\uD83E\uDDA8 Pick Up';
+          btn.textContent = '🦘 Pick Up';
           btn.style.background = '';
         }
-      }, 4000);
+      }, 9000);
+
     } else {
       throw new Error('Server error ' + res.status);
     }
   } catch (e) {
     btn.disabled = false;
-    btn.textContent = '\uD83E\uDDA8 Pick Up';
+    btn.textContent = '🦘 Pick Up';
     btn.style.background = '';
     alert('Could not open ' + binName + '.\n' + e.message);
   }
 }
-
 // ── Commercial alerts ────────────────────────
 function isBinScheduled(binId) {
   return DAYS.some(d => schedule[d.key].includes(binId));
