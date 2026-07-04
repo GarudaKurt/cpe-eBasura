@@ -456,7 +456,7 @@ function renderListZone(bins, containerId, pickIds) {
   bins.forEach(b => {
     const col      = statusColor(b.fill);
     const isComm   = commercials.includes(b.id);
-    const showPick = pickIds.has(b.id) && b.ok && b.full;
+    const showPick = pickIds.has(b.id) && b.ok && (isComm || b.full);
 
     const row = document.createElement('div');
     row.className = 'brow'; row.id = 'row-' + b.id;
@@ -475,7 +475,6 @@ function renderListZone(bins, containerId, pickIds) {
     el.appendChild(row);
   });
 }
-
 function renderList(bins) {
   const PICK_IDS = new Set([0,1,2,3,4,5,6,7]);
   renderListZone(bins.filter(b => b.id <= 3), 'blist-a', PICK_IDS);
